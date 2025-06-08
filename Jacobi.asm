@@ -11,8 +11,10 @@ matrix:
 zero_f:
     .float  0.0
 str_row:
-    .string "Row 2, skip "
+    .string "Row "
 str_col:
+    .string ", skip "
+str_result:
     .string ": "
 newline:
     .string "\n"
@@ -24,55 +26,59 @@ main:
     la    s0, matrix       # s0 = &matrix
     la    s1, vector_x     # s1 = &vector_x
     la    s5, vector_b     # s5 = &vector_b
-    li    s2, 2            # s2 = row index = 2
-    li    s3, 4            # s3 = number of columns
-    li    s4, 0            # s4 = skip index j
+    li    s3, 4            # s3 = number of columns/rows
+    li    s6, 0            # s6 = row index i
 
-test_loop:
-    bge   s4, s3, done     # if j>=4, exit
+row_loop:
+    bge   s6, s3, done     # if i>=4, exit (all rows done)
+    li    s4, 0            # s4 = column index j (reset for each row)
+
+col_loop:
+    bge   s4, s3, next_row # if j>=4, go to next row
     
-    # print "Row 2, skip j: "
+    # print "Row i, skip j: "
     la    a0, str_row
     li    a7, 4            # print_string
     ecall
-    mv    a0, s4
+    mv    a0, s6           # print row index i
     li    a7, 1            # print_int
     ecall
     la    a0, str_col
+    li    a7, 4
+    ecall
+    mv    a0, s4           # print column index j
+    li    a7, 1            # print_int
+    ecall
+    la    a0, str_result
     li    a7, 4
     ecall
 
     # --- compute skipped dot product into f0 ---
     mv    a0, s0           # matrix base
     mv    a1, s1           # vector_x base
-    mv    a2, s2           # row index
-    mv    a3, s4           # skip index
+    mv    a2, s6           # row index i
+    mv    a3, s4           # skip index j
     mv    a4, s3           # #cols
     jal   mul_row_vec_skip
     fmv.s f6, f0           # save dot in f6
 
-    # --- load b[j] into f7 ---
+    # --- load b[i] into f7 ---
     mv    a0, s5           # vector_b base
-    mv    a1, s4           # index j
+    mv    a1, s6           # index i (not j!)
     jal   get_vec_elem
     fmv.s f7, f0
 
-    # --- compute f0 = b[j] - skipped_dot ---
-    fsub.s f0, f7, f6      # f0 = b[j] - skipped_dot
-
-    # --- NEW: get matrix[row][j] (the skipped element) ---
+    # --- get matrix[i][j] (the diagonal/skipped element) ---
     mv    a0, s0           # matrix base
-    mv    a1, s2           # row index (2)
-    mv    a2, s4           # column index j (the skipped column)
+    mv    a1, s6           # row index i
+    mv    a2, s4           # column index j
     mv    a3, s3           # #cols
     jal   get_element
-    fmv.s f8, f0           # f8 = matrix[2][j] = a_ij
+    fmv.s f8, f0           # f8 = matrix[i][j] = a_ij
 
-    # --- NEW: divide by a_ij ---
-    # f0 currently has (b[j] - skipped_dot)
-    # we want f0 = (b[j] - skipped_dot) / a_ij
-    fsub.s f0, f7, f6      # recalculate (b[j] - skipped_dot) into f0
-    fdiv.s f0, f0, f8      # f0 = (b[j] - skipped_dot) / a_ij
+    # --- compute (b[i] - skipped_dot) / a_ij ---
+    fsub.s f0, f7, f6      # f0 = b[i] - skipped_dot
+    fdiv.s f0, f0, f8      # f0 = (b[i] - skipped_dot) / a_ij
 
     # print result
     fmv.s fa0, f0
@@ -84,9 +90,14 @@ test_loop:
     li    a7, 4
     ecall
 
-    # next j
+    # next column j
     addi  s4, s4, 1
-    j     test_loop
+    j     col_loop
+
+next_row:
+    # next row i
+    addi  s6, s6, 1
+    j     row_loop
 
 done:
     li    a7, 10           # exit
