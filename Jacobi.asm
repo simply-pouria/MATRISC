@@ -125,17 +125,17 @@ row_loop:
     jal   get_vec_elem
     fmv.s f7, f0
 
-    # --- get matrix[i][i] (the diagonal element) ---
-    mv    a0, s0           # matrix base
-    mv    a1, s6           # row index i
-    mv    a2, s6           # column index i (diagonal)
-    mv    a3, s3           # #cols
+    # --- get matrix[i][i] (the diagonal element)
+    mv    a0, s0          
+    mv    a1, s6           
+    mv    a2, s6          
+    mv    a3, s3           
     jal   get_element
-    fmv.s f8, f0           # f8 = matrix[i][i] = a_ii
+    fmv.s f8, f0           
 
-    # --- compute x_i_new = (b[i] - skipped_dot) / a_ii ---
-    fsub.s f0, f7, f6      # f0 = b[i] - skipped_dot
-    fdiv.s f0, f0, f8      # f0 = (b[i] - skipped_dot) / a_ii
+    # --- compute x_i_new 
+    fsub.s f0, f7, f6      
+    fdiv.s f0, f0, f8      
 
     # --- store new x_i value ---
     mv    a0, s2           # vector_x_new base
@@ -143,17 +143,17 @@ row_loop:
     fmv.s fa0, f0          # value to store
     jal   set_vec_elem
 
-    # print result
+ 
     fmv.s fa0, f0
-    li    a7, 2            # print_float
+    li    a7, 2            
     ecall
 
-    # newline
+
     la    a0, newline
     li    a7, 4
     ecall
 
-    # next row i
+
     addi  s6, s6, 1
     j     row_loop
 
@@ -185,7 +185,7 @@ print_new_done:
     ecall
 
     # --- COPY NEW VALUES TO CURRENT VALUES ---
-    # This is the key step: x_old := x_new for next iteration
+
     li    t0, 0
 copy_loop:
     bge   t0, s3, copy_done
@@ -242,18 +242,15 @@ done:
     li    a7, 10           # exit
     ecall
 
-#————————————————————————————
-# set_vec_elem:
-#   in:  a0=base, a1=index, fa0=value
-#  out:  stores value at vector[a1]
+
 #————————————————————————————
 set_vec_elem:
     # Save t0 since we use it
     addi  sp, sp, -4
     sw    t0, 0(sp)
     
-    slli  t0, a1, 2        # t0 = index * 4
-    add   t0, a0, t0       # t0 = base + (index * 4)
+    slli  t0, a1, 2       
+    add   t0, a0, t0    
     fsw   fa0, 0(t0)       # store float value
     
     # Restore t0
@@ -261,10 +258,7 @@ set_vec_elem:
     addi  sp, sp, 4
     jr    ra
 
-#————————————————————————————————————————————————————————
-# mul_row_vec_skip:
-#   Inputs: a0=matrix, a1=vector, a2=row, a3=skip, a4=#cols
-#   Output: f0 = ?_{k?skip} matrix[row][k] * vector[k]
+
 #————————————————————————————————————————————————————————
 mul_row_vec_skip:
     # Save registers
@@ -338,10 +332,7 @@ finish:
     addi  sp, sp, 48
     jr    ra
 
-#————————————————————————————
-# get_vec_elem:
-#   in:  a0=base, a1=index
-#  out:  f0=vector[a1]
+
 #————————————————————————————
 get_vec_elem:
     # Save t0 since we use it
@@ -357,10 +348,7 @@ get_vec_elem:
     addi  sp, sp, 4
     jr    ra
 
-#————————————————————————————
-# get_element:
-#   in:  a0=base, a1=row, a2=col, a3=#cols
-#  out:  f0=matrix[a1][a2]
+
 #————————————————————————————
 get_element:
     # Save t0 since we use it
